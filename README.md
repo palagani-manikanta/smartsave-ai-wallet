@@ -1,6 +1,6 @@
 # SmartSave AI Wallet — Save Smart. Spend Only When It Matters.
 
-SmartSave AI Wallet is a production-grade, transaction-secure, AI-powered FinTech mobile wallet application built for the modern consumer. It is designed to help users budget, save money automatically, and protect their savings using an intelligent receipt verification engine.
+SmartSave AI Wallet is a hackathon prototype of an AI-powered FinTech wallet. It is designed to help users budget, save money automatically, and protect their savings using an intelligent receipt verification engine.
 
 ---
 
@@ -52,12 +52,15 @@ flowchart TD
 - PostgreSQL active server (or Docker Desktop)
 
 ### Environment Configuration
-Create a `.env` file in the `server/` directory and `apps/web/.env.local` using the template parameters defined in `.env.example`:
+Copy the template at the repository root, then fill in your own keys:
 
 ```bash
-# Copy template at root
-cp .env.example .env
+cp .env.example server/.env
+cp .env.example apps/web/.env.local
+cp .env.example .env   # used by docker-compose
 ```
+
+You need a free Clerk test account (publishable + secret key) and a Google Gemini API key. Never commit real keys.
 
 ---
 

@@ -10,8 +10,11 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  // Developer bypass check to ensure zero blockage
-  if (request.cookies.get("dev_bypass")?.value === "true") {
+  // Developer bypass: only honoured in local development, never in production builds
+  if (
+    process.env.NODE_ENV === "development" &&
+    request.cookies.get("dev_bypass")?.value === "true"
+  ) {
     return;
   }
 
