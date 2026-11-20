@@ -1,5 +1,7 @@
 import "./env-bootstrap";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { IS_DEMO } from "./lib/demo";
 
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -9,7 +11,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
+const authMiddleware = clerkMiddleware(async (auth, request) => {
   // Developer bypass: only honoured in local development, never in production builds
   if (
     process.env.NODE_ENV === "development" &&
@@ -22,6 +24,9 @@ export default clerkMiddleware(async (auth, request) => {
     await auth.protect();
   }
 });
+
+// Demo mode has no accounts, so every page is open.
+export default IS_DEMO ? () => NextResponse.next() : authMiddleware;
 
 export const config = {
   matcher: [

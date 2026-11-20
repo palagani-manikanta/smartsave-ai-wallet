@@ -18,6 +18,12 @@ import { Avatar, Badge } from "@/components/shared/Typography";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useSmartSaveStore } from "@/store/use-smartsave-store";
 import { useAuth } from "@clerk/nextjs";
+import { IS_DEMO } from "@/lib/demo";
+
+// Demo mode has no Clerk session to end.
+const useSignOut = IS_DEMO
+  ? () => ({ signOut: async () => {} })
+  : () => ({ signOut: useAuth().signOut });
 import { staggerContainer, staggerItem } from "@/lib/animations";
 
 import { formatCurrency } from "@/lib/format";
@@ -95,7 +101,7 @@ function SettingItem({ icon, label, description, rightElement, onClick, href, cl
 
 export default function SettingsPage() {
   const { resolvedTheme, toggleTheme } = useTheme();
-  const { signOut } = useAuth();
+  const { signOut } = useSignOut();
   const { user, wallet, normalSavings, strictSavings, notifications, updateSettings, resetAllData } = useSmartSaveStore();
 
   const handleSignOut = async () => {
@@ -109,8 +115,8 @@ export default function SettingsPage() {
       // Clerk signout
       await signOut();
       
-      // Redirect to sign-in page
-      window.location.href = "/sign-in";
+      // Redirect to sign-in page (demo mode: reload a fresh demo account)
+      window.location.href = IS_DEMO ? "/" : "/sign-in";
     } catch (error) {
       console.error("Error during sign out:", error);
     }
@@ -191,13 +197,6 @@ export default function SettingsPage() {
               {user.firstName} {user.lastName}
             </p>
             <p className="text-sm text-text-secondary">{user.email}</p>
-            <div className="flex items-center gap-2 mt-1.5">
-              <Badge variant="ai" size="sm">
-                <Sparkles size={9} />
-                SmartSave Pro
-              </Badge>
-              <Badge variant="success" size="sm">Verified</Badge>
-            </div>
           </div>
         </div>
 
@@ -288,8 +287,8 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-1">
           <SettingItem
             icon={resolvedTheme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
-            label={resolvedTheme === "dark" ? "Dark Mode" : "Light Mode"}
-            description="Toggle theme"
+            label="Dark mode"
+            description="Easier on the eyes at night"
             onClick={toggleTheme}
             rightElement={
               <div
@@ -333,7 +332,7 @@ export default function SettingsPage() {
       </button>
 
       <p className="text-center text-2xs text-text-tertiary pb-2">
-        SmartSave AI Wallet v1.0.0 · Made with ❤️
+        SmartSave · hackathon prototype
       </p>
 
 {/* ── Lock Maturity Date Editor Modal ───────────────────────── */}

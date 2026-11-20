@@ -3,10 +3,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Bell, Sun, Moon, Sparkles } from "lucide-react";
+import { Bell, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format";
 
 interface TopBarProps {
   totalBalance?: number;
@@ -16,9 +15,8 @@ interface TopBarProps {
 }
 
 export function TopBar({
-  totalBalance = 45665.50,
-  notificationCount = 2,
-  userName = "Alex",
+  notificationCount = 0,
+  userName = "",
   avatarUrl,
 }: TopBarProps) {
   const { resolvedTheme, toggleTheme } = useTheme();
@@ -28,46 +26,19 @@ export function TopBar({
       className={cn(
         "fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-app z-nav",
         "h-top-bar",
-        "bg-bg-base/80 backdrop-blur-xl",
+        "bg-bg-base",
         "border-b border-border-subtle"
       )}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex items-center justify-between h-full px-4">
-        {/* Logo + Greeting */}
-        <div className="flex items-center gap-2">
-          <motion.div
-            className="flex items-center gap-1.5"
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <div className="w-7 h-7 rounded-lg bg-accent-primary flex items-center justify-center">
-              <Sparkles size={14} className="text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <p className="text-xs text-text-tertiary leading-none">Good day,</p>
-              <p className="text-sm font-semibold text-text-primary leading-tight">{userName} 👋</p>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Portfolio Balance Chip */}
-        <motion.div
-          className={cn(
-            "flex flex-col items-center",
-            "px-3 py-1 rounded-full",
-            "bg-bg-elevated border border-border-subtle"
-          )}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <p className="text-2xs text-text-tertiary leading-none">Total Portfolio</p>
-          <p className="text-sm font-bold text-text-primary number-font">
-            {formatCurrency(totalBalance, { compact: true })}
-          </p>
-        </motion.div>
+        {/* Wordmark */}
+        <Link href="/" className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-md bg-accent-primary text-text-inverse text-xs font-bold flex items-center justify-center">
+            S
+          </span>
+          <span className="text-[15px] font-semibold tracking-tight text-text-primary">SmartSave</span>
+        </Link>
 
         {/* Actions */}
         <motion.div
@@ -127,13 +98,13 @@ export function TopBar({
 
           {/* Avatar */}
           <Link href="/profile" className="block">
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-accent-primary/40 ml-0.5 cursor-pointer">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-border-default ml-0.5 cursor-pointer">
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-accent-primary flex items-center justify-center text-white text-xs font-bold">
-                  {userName.charAt(0).toUpperCase()}
+                <div className="w-full h-full bg-bg-elevated flex items-center justify-center text-text-primary text-xs font-semibold">
+                  {(userName.charAt(0) || "?").toUpperCase()}
                 </div>
               )}
             </div>

@@ -1,10 +1,13 @@
 "use client";
 
+import { IS_DEMO } from "@/lib/demo";
+import { DemoRedirect } from "@/components/providers/DemoRedirect";
+
 import { useEffect } from "react";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-export default function SSOCallbackPage() {
+function SSOCallbackPage() {
   const { handleRedirectCallback } = useClerk();
   const router = useRouter();
 
@@ -32,3 +35,5 @@ export default function SSOCallbackPage() {
     </div>
   );
 }
+
+export default IS_DEMO ? DemoRedirect : SSOCallbackPage;

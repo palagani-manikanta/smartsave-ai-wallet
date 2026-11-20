@@ -7,6 +7,7 @@
     "server"
   ],
   "scripts": {
+    "demo": "npm run demo --workspace=apps/web",
     "dev": "concurrently \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=server\"",
     "build": "npm run prisma:generate --workspace=server && npm run build --workspace=server && npm run build --workspace=apps/web",
     "start": "concurrently \"npm run start --workspace=apps/web\" \"npm run start --workspace=server\""

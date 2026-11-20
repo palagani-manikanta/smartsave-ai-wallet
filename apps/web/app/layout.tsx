@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { IS_DEMO } from "@/lib/demo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,8 +31,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#09090B" },
-    { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
+    { media: "(prefers-color-scheme: dark)", color: "#151413" },
+    { media: "(prefers-color-scheme: light)", color: "#F7F5F1" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -45,30 +46,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <ClerkProvider
-      publishableKey="pk_test_c29saWQtZWFyd2lnLTI5LmNsZXJrLmFjY291bnRzLmRldiQ"
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
-    >
+  const page = (
       <html
         lang="en"
-        data-theme="dark"
+        data-theme="light"
         suppressHydrationWarning
       >
         <head>
-          {/* Prevent FOUC — apply dark theme before render */}
+          {/* Prevent FOUC — apply the saved theme before render */}
           <script
             dangerouslySetInnerHTML={{
               __html: `
                 try {
-                  var t = localStorage.getItem('smartsave-theme') || 'dark';
+                  var t = localStorage.getItem('smartsave-theme') || 'light';
                   var r = t === 'system'
                     ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
                     : t;
                   document.documentElement.setAttribute('data-theme', r);
                 } catch(e) {
-                  document.documentElement.setAttribute('data-theme', 'dark');
+                  document.documentElement.setAttribute('data-theme', 'light');
                 }
               `,
             }}
@@ -82,6 +78,17 @@ export default function RootLayout({
           </AppProviders>
         </body>
       </html>
+  );
+
+  if (IS_DEMO) return page;
+
+  return (
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+    >
+      {page}
     </ClerkProvider>
   );
 }

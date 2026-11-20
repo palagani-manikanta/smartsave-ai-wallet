@@ -1,10 +1,51 @@
-# SmartSave AI Wallet — Save Smart. Spend Only When It Matters.
+# SmartSave AI Wallet
 
-SmartSave AI Wallet is a hackathon prototype of an AI-powered FinTech wallet. It is designed to help users budget, save money automatically, and protect their savings using an intelligent receipt verification engine.
+A savings wallet where some of your money is locked. To take locked money out, you upload a bill. SmartSave reads it and only releases the money for essential expenses like medical bills, rent or school fees. Spending on gaming, shopping or eating out stays blocked.
 
----
+**Status:** hackathon prototype built by a team. It is not a real bank and does not move real money.
+<!-- TODO(Manikanta): add the hackathon name, team size and your own role, e.g.
+## Team
+Built at <hackathon> by a team of <N>. I built <your parts>.
+-->
 
-## 1. System Architecture Diagram
+| Home | Bill check | Result |
+|---|---|---|
+| ![Home](docs/screenshots/home.png) | ![Upload](docs/screenshots/upload.png) | ![Approved](docs/screenshots/approved.png) |
+
+## Try it in 1 minute (demo mode)
+
+Demo mode runs the whole app in your browser. You do not need Clerk, Gemini, Python or a database.
+
+```bash
+npm install --prefix apps/web
+npm run demo --prefix apps/web
+```
+
+Open http://localhost:3000, then:
+
+1. Go to **Strict** and tap **Withdraw**. Enter an amount.
+2. Upload `demo/hospital_bill.png.txt`. The withdrawal is approved and the money moves to your wallet.
+3. Try again with `demo/gaming_invoice.png.txt`. The withdrawal is blocked and the money stays locked.
+4. Tap **Reset** in the demo banner to start over.
+
+To host the demo (for example on Vercel), deploy `apps/web` with the environment variable `NEXT_PUBLIC_DEMO_MODE=true`.
+
+## What is real and what is simulated
+
+| Part | Full setup | Demo mode |
+|---|---|---|
+| Login | Clerk | None (one sample account) |
+| Balances and transfers | Express API + Wallet service + PostgreSQL | Same rules, stored in the browser |
+| Reading the bill | Tesseract OCR | Reads `.txt` bills; for images it only uses the file name |
+| Essential or not | Google Gemini, with a keyword fallback | The same keyword rules, ported to TypeScript |
+
+## Known limitations
+
+- No automated tests for the web app or the Express API yet. The Python services have a few unit tests.
+- If Tesseract fails on an image, the OCR service guesses a document type from the file name instead of reporting an error.
+- Balances are in USD and the sample data is made up.
+
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -31,9 +72,8 @@ flowchart TD
     Express -->|Sync Profiles & Requests| Postgres
 ```
 
----
 
-## 2. Main Subsystems & Ports
+### Services and ports
 
 1. **Next.js Client**: Port `3000` (Next.js 15, Framer Motion, Tailwind CSS, Zustand, Clerk Authentication)
 2. **Express Backend API**: Port `5000` (Node.js, TypeScript, Helmet, Rate Limiter, Swagger, Prisma ORM, Pino Logger)
@@ -42,9 +82,8 @@ flowchart TD
 5. **AI Verification MCP Server**: Port `5002` (Python, FastAPI, Google Gemini API, exponential retry hooks)
 6. **Wallet MCP Server**: Port `5003` (Python, FastAPI, psycopg2-binary, atomic row lock transactions)
 
----
 
-## 3. Installation & Local Setup
+## Full setup (real login, OCR and Gemini)
 
 ### Prerequisites
 - Node.js v18+ & npm
@@ -62,9 +101,8 @@ cp .env.example .env   # used by docker-compose
 
 You need a free Clerk test account (publishable + secret key) and a Google Gemini API key. Never commit real keys.
 
----
 
-## 4. Run Locally
+### Run locally
 
 ### Start all microservices in separate terminal splits (One Command)
 If running directly on host OS without Docker, launch our unified launcher scripts:
@@ -80,9 +118,8 @@ chmod +x start-dev.sh
 ./start-dev.sh
 ```
 
----
 
-## 5. Docker Compose Staging Orchestration
+### Docker Compose
 
 To compile and launch the entire production stack inside a unified Docker container network:
 
@@ -91,36 +128,6 @@ To compile and launch the entire production stack inside a unified Docker contai
 docker-compose up --build
 ```
 
----
+### API docs
 
-## 6. Swagger API Documentation
-
-Our Express gateway incorporates automatic Swagger specifications. You can review parameters, payload structures, schemas, and live test queries by navigating to:
-👉 **[http://localhost:5000/api-docs](http://localhost:5000/api-docs)**
-
----
-
-## 7. Hackathon Demo Walkthrough Flow
-
-To test the wallet engine, we seeded a mock account:
-- **Test Clerk ID**: `user_2t18bXzV8vPjWj6y1F3y2D4z6k7`
-- **Strict Savings Balance**: `$5,000.00`
-- **Protected Reserve Limit**: `$1,000.00`
-
-### Case A: Direct Withdrawal (No OCR/AI required)
-1. Withdraw `$1,500.00` from Strict Savings.
-2. Deducting `$1,500.00` leaves a balance of `$3,500.00`, which is above or equal to the `$1,000.00` Protected Reserve limit.
-3. Express skips OCR and AI, invoking the **Wallet MCP** directly. The transfer completes instantly.
-
-### Case B: Approved Withdrawal (AI-Verified Receipt)
-1. Withdraw `$4,500.00` from Strict Savings.
-2. Deducting `$4,500.00` leaves a balance of `$500.00`, dipping below the `$1,000.00` Protected Reserve limit.
-3. Express blocks direct transfer, returning a `PENDING_VERIFICATION` status.
-4. Upload `demo/hospital_bill.png.txt` (or similar file) to the verification request.
-5. The **OCR MCP** extracts raw text; the **AI MCP** classifies it as `Medical` (Essential).
-6. The transfer is approved. **Wallet MCP** updates balances atomically.
-
-### Case C: Blocked Withdrawal (AI-Rejected Expense)
-1. Repeat Case B, but upload `demo/shopping_receipt.png.txt` or `demo/gaming_invoice.png.txt`.
-2. **AI MCP** classifies the receipt as `Shopping` or `Gaming` (Non-Essential).
-3. The transfer is blocked. Balances remain untouched. A warning notification is dispatched to the user.
+The Express API serves Swagger docs at **[http://localhost:5000/api-docs](http://localhost:5000/api-docs)**

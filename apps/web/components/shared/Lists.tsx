@@ -104,7 +104,7 @@ export function TransactionItem({ transaction, onClick }: TransactionItemProps) 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-semibold text-text-primary truncate">
-            {counterpartyName ?? type}
+            {counterpartyName || description || type}
           </p>
           {isApproved && (
             <CheckCircle2 size={12} className="text-success flex-shrink-0" />
@@ -114,7 +114,7 @@ export function TransactionItem({ transaction, onClick }: TransactionItemProps) 
           )}
         </div>
         <p className="text-xs text-text-tertiary truncate">
-          {description ?? formatDate(createdAt)}
+          {(counterpartyName && description) || formatDate(createdAt)}
         </p>
       </div>
 

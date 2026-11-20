@@ -15,11 +15,9 @@ import { WalletCard } from "@/components/shared/Cards";
 import { BalanceDisplay } from "@/components/shared/Typography";
 import { ActionButton, Button } from "@/components/shared/Button";
 import { TransactionList } from "@/components/shared/Lists";
-import { AIInsightCarousel } from "@/components/shared/AIComponents";
 import { Modal } from "@/components/shared/Overlays";
 import { useSmartSaveStore } from "@/store/use-smartsave-store";
 import { staggerContainer } from "@/lib/animations";
-import { mockInsights } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
 
 export default function WalletPage() {
@@ -112,10 +110,10 @@ export default function WalletPage() {
           {/* Card header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CreditCard size={14} className="text-white/60" strokeWidth={1.5} />
-              <span className="text-xs text-white/60 font-medium">Main Wallet</span>
+              <CreditCard size={14} className="text-text-tertiary" strokeWidth={1.5} />
+              <span className="text-xs text-text-tertiary font-medium">Main Wallet</span>
             </div>
-            <span className="text-xs text-white/50 font-mono">{wallet.cardNumber}</span>
+            <span className="text-xs text-text-tertiary font-mono">{wallet.cardNumber}</span>
           </div>
 
           {/* Balance */}
@@ -125,9 +123,7 @@ export default function WalletPage() {
             isVisible={isBalanceVisible}
             onToggleVisibility={() => setIsBalanceVisible((v) => !v)}
             size="xl"
-            showChange={true}
-            changeAmount={walletNetChange}
-            changePercentage={walletChangePercentage}
+            showChange={false}
           />
 
           {/* Actions row */}
@@ -159,9 +155,6 @@ export default function WalletPage() {
           </div>
         </div>
       </div>
-
-      {/* ── AI Insights ─────────────────────────────────────────── */}
-      <AIInsightCarousel insights={mockInsights.slice(0, 3)} />
 
       {/* ── Recent Transactions ──────────────────────────────────── */}
       <TransactionList

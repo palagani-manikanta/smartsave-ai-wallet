@@ -6,7 +6,6 @@ import {
   Shield,
   Plus,
   ArrowUpRight,
-  Brain,
   Lock,
   ChevronLeft,
   CheckCircle2,
@@ -100,7 +99,7 @@ export default function StrictSavingsDashboardPage() {
         </Link>
         <div>
           <h1 className="text-xl font-bold text-text-primary">Protected Savings</h1>
-          <p className="text-xs text-text-tertiary">Locked savings verified by Smart AI</p>
+          <p className="text-xs text-text-tertiary">Money you can only take out for essential bills</p>
         </div>
       </div>
 
@@ -112,13 +111,9 @@ export default function StrictSavingsDashboardPage() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Shield size={14} className="text-white/70" strokeWidth={1.5} />
-              <span className="text-xs text-white/70 font-medium">Protected Vault</span>
+              <Shield size={14} className="text-text-secondary" strokeWidth={1.5} />
+              <span className="text-xs text-text-secondary font-medium">Protected Vault</span>
             </div>
-            <Badge variant="ai" size="sm">
-              <Brain size={9} />
-              AI Protected
-            </Badge>
           </div>
 
           <BalanceDisplay
@@ -130,49 +125,49 @@ export default function StrictSavingsDashboardPage() {
           />
 
           {/* Lock Details Grid */}
-          <div className="grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-xs text-white/70">
+          <div className="grid grid-cols-2 gap-3 border-t border-border-subtle pt-4 text-xs text-text-secondary">
             <div>
-              <p className="text-2xs text-white/40 uppercase tracking-wider font-semibold">Start Date</p>
+              <p className="text-2xs text-text-tertiary uppercase tracking-wider font-semibold">Start Date</p>
               <p className="font-semibold number-font mt-0.5" suppressHydrationWarning>
                 {mounted ? startDate.toLocaleDateString("en-GB") : "--/--/----"}
               </p>
             </div>
             <div>
-              <p className="text-2xs text-white/40 uppercase tracking-wider font-semibold">End Date (Maturity)</p>
+              <p className="text-2xs text-text-tertiary uppercase tracking-wider font-semibold">End Date (Maturity)</p>
               <p className="font-semibold number-font mt-0.5" suppressHydrationWarning>
                 {mounted ? endDate.toLocaleDateString("en-GB") : "--/--/----"}
               </p>
             </div>
             <div>
-              <p className="text-2xs text-white/40 uppercase tracking-wider font-semibold">Current Date</p>
+              <p className="text-2xs text-text-tertiary uppercase tracking-wider font-semibold">Current Date</p>
               <p className="font-semibold number-font mt-0.5" suppressHydrationWarning>
                 {mounted ? now.toLocaleDateString("en-GB") : "--/--/----"}
               </p>
             </div>
             <div>
-              <p className="text-2xs text-white/40 uppercase tracking-wider font-semibold">Days Remaining</p>
+              <p className="text-2xs text-text-tertiary uppercase tracking-wider font-semibold">Days Remaining</p>
               <p className="font-semibold number-font mt-0.5" suppressHydrationWarning>
                 {mounted ? (isMatured ? "0 days" : `${daysRemaining} days`) : "-- days"}
               </p>
             </div>
-            <div className="col-span-2 pt-2 border-t border-white/5 flex justify-between items-center">
-              <span className="text-2xs text-white/40 uppercase font-semibold">Maturity Status</span>
+            <div className="col-span-2 pt-2 border-t border-border-subtle flex justify-between items-center">
+              <span className="text-2xs text-text-tertiary uppercase font-semibold">Maturity Status</span>
               <Badge variant={mounted && isMatured ? "success" : "error"} size="sm">
                 {mounted ? (isMatured ? "Matured" : "Locked") : "Locked"}
               </Badge>
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+          <div className="bg-white/5 border border-border-subtle rounded-2xl p-3">
             <div className="flex items-center gap-2 mb-1">
-              <Lock size={12} className="text-white/50" />
-              <p className="text-xs text-white/50 font-medium">AI Protection Rule</p>
+              <Lock size={12} className="text-text-tertiary" />
+              <p className="text-xs text-text-tertiary font-medium">Withdrawal rule</p>
             </div>
-            <p className="text-sm text-white/80 font-semibold leading-relaxed">
-              All withdrawals require AI document verification.
+            <p className="text-sm text-text-secondary font-semibold leading-relaxed">
+              Every withdrawal needs a bill or receipt.
             </p>
-            <p className="text-xs text-white/40 mt-1.5 leading-normal">
-              Upload a valid receipt, invoice, or bill. The AI will approve or reject your withdrawal request.
+            <p className="text-xs text-text-tertiary mt-1.5 leading-normal">
+              Upload a bill, receipt or invoice. SmartSave checks if it is an essential expense (medical, rent, school fees, utilities) and then approves or blocks the withdrawal.
             </p>
           </div>
 

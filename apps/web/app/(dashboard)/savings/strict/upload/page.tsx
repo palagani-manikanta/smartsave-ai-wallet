@@ -13,7 +13,6 @@ import {
   Loader2,
   AlertCircle,
   Scale,
-  Sparkles,
   Lock,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,13 +22,14 @@ import { Button } from "@/components/shared/Button";
 import { Badge } from "@/components/shared/Typography";
 import { VerificationStatus } from "@/components/shared/AIComponents";
 import { useSmartSaveStore } from "@/store/use-smartsave-store";
+import { IS_DEMO } from "@/lib/demo";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { staggerContainer } from "@/lib/animations";
 
 export default function DocumentUploadPage() {
   const router = useRouter();
-  const { currentVerificationRequest, uploadProofDocument, completeVerificationFlow } = useSmartSaveStore();
+  const { currentVerificationRequest, uploadProofDocument } = useSmartSaveStore();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -38,8 +38,6 @@ export default function DocumentUploadPage() {
   const [resultReasoning, setResultReasoning] = useState("");
   const [resultCategory, setResultCategory] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
-  const [useFallback, setUseFallback] = useState(false);
-  const [mockOutcome, setMockOutcome] = useState<"APPROVED" | "REJECTED">("APPROVED");
   // Snapshot the request amount/id BEFORE the store clears currentVerificationRequest on success
   const [snapshotAmount, setSnapshotAmount] = useState<number>(0);
   const [snapshotId, setSnapshotId] = useState<string>("");
@@ -78,38 +76,19 @@ export default function DocumentUploadPage() {
     await new Promise((resolve) => setTimeout(resolve, 800));
     setCurrentStepIndex(1);
 
-    // Try real backend upload first
-    if (!useFallback) {
-      const result = await uploadProofDocument(selectedFile);
-      setCurrentStepIndex(2);
-      await new Promise((resolve) => setTimeout(resolve, 600));
-
-      if (result) {
-        // Real AI result from backend
-        setResultReasoning(result.reasoning || result.ai?.reason || "AI analysis complete.");
-        setResultCategory(result.ai?.category || "");
-        setResultType(result.status);
-        setIsVerifying(false);
-        return;
-      }
-      // Backend unavailable — fall through to demo mode
-      setApiError("AI backend unavailable — running demo simulation.");
-    }
-
-    // Fallback: demo mode
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const result = await uploadProofDocument(selectedFile);
     setCurrentStepIndex(2);
     await new Promise((resolve) => setTimeout(resolve, 600));
 
-    const reason =
-      mockOutcome === "APPROVED"
-        ? "AI confirmed the uploaded document is an essential expense (e.g. medical bill, utility, emergency repair)."
-        : "AI classified the uploaded document as non-essential dining or entertainment spending.";
-
-    completeVerificationFlow(reqId, mockOutcome, reason);
-    setResultReasoning(reason);
-    setResultCategory(mockOutcome === "APPROVED" ? "Essential Expense" : "Non-Essential");
-    setResultType(mockOutcome);
+    if (result) {
+      setResultReasoning(result.reasoning || result.ai?.reason || "Check complete.");
+      setResultCategory(result.ai?.category || "");
+      setResultType(result.status);
+    } else {
+      // No silent fake result: if the check fails, say so and leave the money where it is.
+      setApiError("The document could not be checked. Your money was not moved. Please try again.");
+      setCurrentStepIndex(0);
+    }
     setIsVerifying(false);
   };
 
@@ -117,21 +96,21 @@ export default function DocumentUploadPage() {
   const simulationSteps = [
     {
       id: "ocr",
-      label: "OCR Text Extraction",
+      label: "Read the document",
       description: selectedFile ? `Reading "${selectedFile.name}"` : "Reading document text",
       icon: FileText,
       status: currentStepIndex > 0 ? ("completed" as const) : currentStepIndex === 0 ? ("active" as const) : ("pending" as const),
     },
     {
       id: "ai",
-      label: "AI Expense Analysis",
+      label: "Classify the expense",
       description: "Classifying expense as essential/non-essential",
       icon: Brain,
       status: currentStepIndex > 1 ? ("completed" as const) : currentStepIndex === 1 ? ("active" as const) : ("pending" as const),
     },
     {
       id: "decision",
-      label: "Final Shield Verdict",
+      label: "Decision",
       description: "Applying smart money rules",
       icon: Scale,
       status: resultType !== null ? ("completed" as const) : currentStepIndex === 2 ? ("active" as const) : ("pending" as const),
@@ -165,7 +144,7 @@ export default function DocumentUploadPage() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 260, damping: 18 }}
           className={cn(
-            "w-24 h-24 rounded-full flex items-center justify-center shadow-2xl",
+            "w-20 h-20 rounded-full flex items-center justify-center",
             isApproved
               ? "bg-success/20 text-success ring-4 ring-success/20"
               : "bg-error/20 text-error ring-4 ring-error/20"
@@ -181,15 +160,15 @@ export default function DocumentUploadPage() {
           transition={{ delay: 0.15 }}
         >
           <h1 className={cn(
-            "text-3xl font-black",
+            "text-2xl font-semibold tracking-tight",
             isApproved ? "text-success" : "text-error"
           )}>
-            {isApproved ? "✓ Withdrawal Approved" : "✗ Withdrawal Rejected"}
+            {isApproved ? "Withdrawal approved" : "Withdrawal blocked"}
           </h1>
           <p className="text-sm text-text-secondary mt-2">
             {isApproved
               ? "Your money has been transferred back to your Main Wallet."
-              : "SmartSave AI blocked this withdrawal to protect your savings."}
+              : "This bill looks like non-essential spending, so the money stays locked."}
           </p>
         </motion.div>
 
@@ -222,7 +201,7 @@ export default function DocumentUploadPage() {
               {/* Badge + Category */}
               <div className="flex justify-center gap-2">
                 <Badge variant={isApproved ? "success" : "error"}>
-                  {isApproved ? "✓ Essential Expense" : "✗ Non-Essential"}
+                  {isApproved ? "Essential" : "Non-essential"}
                 </Badge>
                 {resultCategory && (
                   <Badge variant="ai">{resultCategory}</Badge>
@@ -231,7 +210,7 @@ export default function DocumentUploadPage() {
 
               {/* AI Reasoning */}
               <p className="text-xs text-text-secondary bg-bg-surface/60 p-3 rounded-xl leading-relaxed border border-border-subtle text-left">
-                <span className="font-semibold text-text-primary block mb-1">AI Reasoning:</span>
+                <span className="font-semibold text-text-primary block mb-1">Why:</span>
                 {resultReasoning || (
                   isApproved
                     ? "Document verified as an essential expense. Funds transferred to your wallet."
@@ -266,7 +245,7 @@ export default function DocumentUploadPage() {
         >
           <Link href={isApproved ? "/wallet" : "/savings/strict"} className="w-full">
             <Button className="w-full" variant="primary" size="lg">
-              {isApproved ? "View Main Wallet" : "Return to Protected Vault"}
+              {isApproved ? "View Main Wallet" : "Back to strict savings"}
             </Button>
           </Link>
           {!isApproved && (
@@ -292,7 +271,7 @@ export default function DocumentUploadPage() {
           >
             <Brain size={28} />
           </motion.div>
-          <h1 className="text-xl font-bold text-text-primary">Shield Processing</h1>
+          <h1 className="text-xl font-bold text-text-primary">Checking your document</h1>
           <p className="text-xs text-text-tertiary mt-1">Analyzing expense validity in real-time</p>
         </div>
 
@@ -321,8 +300,8 @@ export default function DocumentUploadPage() {
           <ChevronLeft size={16} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Upload Proof</h1>
-          <p className="text-xs text-text-tertiary">Document verification flow</p>
+          <h1 className="text-xl font-bold text-text-primary">Upload a bill</h1>
+          <p className="text-xs text-text-tertiary">Show what the money is for</p>
         </div>
       </div>
 
@@ -334,10 +313,6 @@ export default function DocumentUploadPage() {
             {formatCurrency(currentVerificationRequest?.amount ?? 0)}
           </p>
         </div>
-        <Badge variant="ai" size="sm">
-          <Lock size={10} className="mr-0.5" />
-          Shield Protected
-        </Badge>
       </GlassCard>
 
       {/* ── Dropzone area ───────────────────────────────────────── */}
@@ -358,7 +333,7 @@ export default function DocumentUploadPage() {
           <input
             id="file-input"
             type="file"
-            accept="image/*,application/pdf"
+            accept={IS_DEMO ? "image/*,application/pdf,.txt,text/plain" : "image/*,application/pdf"}
             onChange={handleFileChange}
             className="hidden"
           />
@@ -378,7 +353,11 @@ export default function DocumentUploadPage() {
             ) : (
               <>
                 <p className="text-sm font-semibold text-text-primary">Drag & drop receipt/bill</p>
-                <p className="text-2xs text-text-tertiary mt-0.5">Supports JPG, PNG, PDF up to 10MB</p>
+                <p className="text-2xs text-text-tertiary mt-0.5">
+                  {IS_DEMO
+                    ? "Demo: try a sample bill from the repo's demo/ folder (.txt), or any file whose name describes the bill"
+                    : "Supports JPG, PNG, PDF up to 10MB"}
+                </p>
               </>
             )}
           </div>
@@ -387,76 +366,17 @@ export default function DocumentUploadPage() {
 
       {/* ── Branded Info Box ────────────────────────────────────── */}
       <GlassCard padding="sm" className="border border-border-subtle bg-bg-surface/30">
-        <h4 className="text-xs font-bold text-text-secondary mb-1 flex items-center gap-1">
-          <Sparkles size={12} className="text-accent-primary-light" />
-          AI Rules of Protection
-        </h4>
+        <h4 className="text-xs font-semibold text-text-secondary mb-1">What gets approved</h4>
         <ul className="list-disc pl-4 text-2xs text-text-tertiary space-y-1 mt-1.5">
-          <li>Must show provider, transaction date, and matching amount.</li>
-          <li>Receipt date must be within 30 days.</li>
-          <li>Expenses classified as non-essential will automatically block the transfer.</li>
+          <li>Approved: medical, rent, school fees, utilities, insurance, groceries, transport, repairs.</li>
+          <li>Blocked: dining out, gaming, streaming, shopping, travel, luxury items.</li>
+          <li>If the bill is blocked, the money stays in strict savings.</li>
         </ul>
       </GlassCard>
 
-      {/* ── Demo Fallback Toggle ─────────────────────────────────── */}
-      <div className="flex flex-col gap-2 p-4 bg-bg-elevated/40 border border-border-subtle rounded-2xl">
-        <p className="text-2xs uppercase tracking-wider font-semibold text-text-tertiary text-center">
-          Demo Fallback {useFallback ? "(Active — using simulation)" : "(Disabled — using real AI)"}
-        </p>
-        {apiError && (
-          <p className="text-2xs text-warning text-center">{apiError}</p>
-        )}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setUseFallback(false)}
-            className={cn(
-              "flex-1 py-2 text-xs font-bold rounded-full border transition-all",
-              !useFallback
-                ? "bg-accent-primary/15 border-accent-primary/40 text-accent-primary-light"
-                : "bg-transparent border-border-subtle text-text-secondary"
-            )}
-          >
-            Real AI
-          </button>
-          <button
-            onClick={() => setUseFallback(true)}
-            className={cn(
-              "flex-1 py-2 text-xs font-bold rounded-full border transition-all",
-              useFallback
-                ? "bg-warning/15 border-warning/40 text-warning"
-                : "bg-transparent border-border-subtle text-text-secondary"
-            )}
-          >
-            Demo Mode
-          </button>
-        </div>
-        {useFallback && (
-          <div className="flex gap-2 mt-1">
-            <button
-              onClick={() => setMockOutcome("APPROVED")}
-              className={cn(
-                "flex-1 py-2 text-xs font-bold rounded-full border transition-all",
-                mockOutcome === "APPROVED"
-                  ? "bg-success/15 border-success/40 text-success"
-                  : "bg-transparent border-border-subtle text-text-secondary"
-              )}
-            >
-              Simulate Approval
-            </button>
-            <button
-              onClick={() => setMockOutcome("REJECTED")}
-              className={cn(
-                "flex-1 py-2 text-xs font-bold rounded-full border transition-all",
-                mockOutcome === "REJECTED"
-                  ? "bg-error/15 border-error/40 text-error"
-                  : "bg-transparent border-border-subtle text-text-secondary"
-              )}
-            >
-              Simulate Rejection
-            </button>
-          </div>
-        )}
-      </div>
+      {apiError && (
+        <p role="alert" className="text-xs text-error text-center">{apiError}</p>
+      )}
 
       <Button
         disabled={!selectedFile}
@@ -466,7 +386,7 @@ export default function DocumentUploadPage() {
         className="w-full mt-2"
         leftIcon={<Brain size={18} />}
       >
-        Submit for AI Verification
+        Check document
       </Button>
     </motion.div>
   );

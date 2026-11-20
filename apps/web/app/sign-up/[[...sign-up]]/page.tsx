@@ -1,5 +1,8 @@
 "use client";
 
+import { IS_DEMO } from "@/lib/demo";
+import { DemoRedirect } from "@/components/providers/DemoRedirect";
+
 import React, { useState, useEffect } from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { motion } from "framer-motion";
@@ -18,7 +21,7 @@ function GoogleIcon() {
   );
 }
 
-export default function SignUpPage() {
+function SignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp() as any;
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -302,3 +305,5 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+export default IS_DEMO ? DemoRedirect : SignUpPage;

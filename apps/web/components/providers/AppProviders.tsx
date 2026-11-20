@@ -4,8 +4,24 @@ import React, { useEffect } from "react";
 import { ThemeProvider } from "./ThemeProvider";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useSmartSaveStore } from "@/store/use-smartsave-store";
+import { IS_DEMO, DEMO_TOKEN } from "@/lib/demo";
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+// Demo mode: no Clerk. Load the in-browser demo account straight away.
+function DemoAuthBridge({ children }: { children: React.ReactNode }) {
+  const setToken = useSmartSaveStore((s) => s.setToken);
+  const syncUser = useSmartSaveStore((s) => s.syncUser);
+  const fetchData = useSmartSaveStore((s) => s.fetchData);
+
+  useEffect(() => {
+    setToken(DEMO_TOKEN);
+    syncUser({ firstName: "Demo", lastName: "User", email: "demo@smartsave.app" }).then(fetchData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return <ThemeProvider>{children}</ThemeProvider>;
+}
+
+function ClerkAuthBridge({ children }: { children: React.ReactNode }) {
   const { isLoaded, userId, getToken } = useAuth();
   const { user } = useUser();
   const setToken = useSmartSaveStore((s) => s.setToken);
@@ -68,3 +84,4 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   );
 }
 
+export const AppProviders = IS_DEMO ? DemoAuthBridge : ClerkAuthBridge;
