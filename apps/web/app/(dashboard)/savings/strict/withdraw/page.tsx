@@ -122,7 +122,7 @@ export default function StrictWithdrawalPage() {
               <Lock size={14} className="flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">AI Verification Required</p>
-                <p className="mt-0.5 text-white/70">
+                <p className="mt-0.5 text-text-secondary">
                   All withdrawals from Protected Savings require uploading a valid proof of expense (receipt, invoice, or bill). The AI will review and approve or reject your request.
                 </p>
               </div>

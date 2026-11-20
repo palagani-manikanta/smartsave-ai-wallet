@@ -45,13 +45,13 @@ export function BalanceDisplay({
     <div className={cn("flex flex-col gap-1", className)}>
       {/* Label row */}
       <div className="flex items-center gap-2">
-        <p className="text-xs uppercase tracking-wider font-medium text-white/60">
+        <p className="text-xs uppercase tracking-wider font-medium text-text-tertiary">
           {label}
         </p>
         {onToggleVisibility && (
           <button
             onClick={onToggleVisibility}
-            className="text-white/50 hover:text-white/80 transition-colors"
+            className="text-text-tertiary hover:text-text-primary transition-colors"
             aria-label={isVisible ? "Hide balance" : "Show balance"}
           >
             {isVisible ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -67,7 +67,7 @@ export function BalanceDisplay({
           initial="hidden"
           animate="visible"
           exit="hidden"
-          className={cn(sizeMap[size], "number-font text-white tracking-tight")}
+          className={cn(sizeMap[size], "number-font text-text-primary tracking-tight")}
         >
           {isVisible
             ? formatCurrency(amount, { currency })
@@ -214,7 +214,7 @@ export function Chip({ label, isActive = false, onClick, className }: ChipProps)
       className={cn(
         "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
         isActive
-          ? "bg-accent-primary text-white"
+          ? "bg-accent-primary text-text-primary"
           : "bg-bg-elevated text-text-secondary border border-border-default hover:border-accent-primary hover:text-accent-primary",
         className
       )}
@@ -253,7 +253,7 @@ export function Avatar({ src, name, size = "md", className }: AvatarProps) {
     <div
       className={cn(
         "rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center",
-        "bg-accent-primary text-white font-semibold",
+        "bg-accent-primary text-text-primary font-semibold",
         avatarSizeMap[size],
         className
       )}

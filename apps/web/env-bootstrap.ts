@@ -1,10 +1,11 @@
-// Bootstrap environment variables to prevent startup crashes when keys are missing
-if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_c29saWQtZWFyd2lnLTI5LmNsZXJrLmFjY291bnRzLmRldiQ";
-}
-if (!process.env.CLERK_SECRET_KEY) {
-  process.env.CLERK_SECRET_KEY = "sk_test_1rrOconxkq6vr3tDyu0Z4aKlHf9fc6sLhpxJLWd6nL";
-}
+// Fill in safe defaults for non-secret settings when they are missing.
+// Secret keys are never hard-coded here: set CLERK_SECRET_KEY in apps/web/.env.local
+// (see .env.example at the repository root).
 if (!process.env.NEXT_PUBLIC_API_URL) {
   process.env.NEXT_PUBLIC_API_URL = "/api/v1";
+}
+if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) {
+  console.warn(
+    "[env] Clerk keys are missing. Copy .env.example to apps/web/.env.local and add your Clerk test keys."
+  );
 }

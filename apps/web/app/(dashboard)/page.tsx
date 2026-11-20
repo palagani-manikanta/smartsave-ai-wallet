@@ -1,212 +1,145 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
-import {
-  TrendingUp,
-  Brain,
-  Shield,
-  ArrowUpRight,
-  ArrowDownLeft,
-  PiggyBank,
-  Sparkles,
-  ChevronRight,
-} from "lucide-react";
 import Link from "next/link";
-import { GlassCard, StatCard } from "@/components/shared/Cards";
-import { BalanceDisplay, Badge } from "@/components/shared/Typography";
-import { CircularProgress } from "@/components/shared/Feedback";
-import { AIInsightCard } from "@/components/shared/AIComponents";
+import { ArrowUpRight, ChevronRight, Lock, Plus } from "lucide-react";
 import { TransactionList } from "@/components/shared/Lists";
 import { useSmartSaveStore } from "@/store/use-smartsave-store";
-import { staggerContainer, fadeInUpVariants } from "@/lib/animations";
-import { mockInsights } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
+
+function AccountRow({
+  href,
+  name,
+  note,
+  amount,
+  dot,
+}: {
+  href: string;
+  name: string;
+  note: string;
+  amount: number;
+  dot: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 group"
+    >
+      <span className={`w-2 h-2 rounded-full ${dot}`} aria-hidden />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-text-primary">{name}</p>
+        <p className="text-xs text-text-tertiary">{note}</p>
+      </div>
+      <p className="text-sm font-semibold text-text-primary number-font">{formatCurrency(amount)}</p>
+      <ChevronRight size={16} className="text-text-tertiary group-hover:text-text-secondary" />
+    </Link>
+  );
+}
 
 export default function DashboardPage() {
   const { wallet, normalSavings, strictSavings, transactions } = useSmartSaveStore();
 
-  const totalNetWorth = wallet.balance + normalSavings.balance + strictSavings.balance;
-  const totalSavings = normalSavings.balance + strictSavings.balance;
-  
-  // Calculate percentage of flexible savings compared to total savings
-  const savingsProgress = totalSavings > 0 ? (normalSavings.balance / totalSavings) * 100 : 0;
+  const total = wallet.balance + normalSavings.balance + strictSavings.balance;
+  const share = (n: number) => (total > 0 ? (n / total) * 100 : 0);
 
-  // Calculate dynamic monthly change based on transactions in the last 30 days
-  const now = new Date();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(now.getDate() - 30);
-
-  const monthlyTransactions = transactions.filter(
-    (t) => new Date(t.createdAt) >= thirtyDaysAgo && t.status === "COMPLETED"
-  );
-
-  const netChange = monthlyTransactions.reduce((sum, t) => {
-    const amt = Number(t.amount);
-    return t.direction === "CREDIT" ? sum + amt : sum - amt;
-  }, 0);
-
-  const previousNetWorth = totalNetWorth - netChange;
-  const changePercentage = previousNetWorth > 0 ? (netChange / previousNetWorth) * 100 : 0;
+  // "This month" numbers come from the user's own transactions, not canned text.
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+  const recent = transactions.filter((t) => new Date(t.createdAt) >= since);
+  const moneyIn = recent
+    .filter((t) => t.status === "COMPLETED" && t.direction === "CREDIT" && t.walletType === "MAIN")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const moneyOut = recent
+    .filter((t) => t.status === "COMPLETED" && t.direction === "DEBIT" && t.walletType === "MAIN")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const blocked = recent.filter((t) => t.walletType === "STRICT" && t.status === "FAILED");
 
   return (
-    <motion.div
-      variants={staggerContainer}
-      initial="initial"
-      animate="animate"
-      className="px-4 py-4 flex flex-col gap-6"
-    >
-      {/* ── Portfolio Hero Card ──────────────────────────────────── */}
-      <GlassCard
-        glow="violet"
-        padding="lg"
-        className="relative overflow-hidden border border-violet-500/20 bg-gradient-to-br from-violet-950/40 via-bg-surface to-bg-base"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
+    <div className="px-4 py-5 flex flex-col gap-5">
+      {/* ── Total balance ─────────────────────────────────────── */}
+      <section className="rounded-2xl bg-bg-surface border border-border-subtle p-5">
+        <p className="text-xs text-text-tertiary">Total balance</p>
+        <p className="mt-1 text-[34px] leading-none font-semibold tracking-tight text-text-primary number-font">
+          {formatCurrency(total)}
+        </p>
 
-        <div className="flex flex-col gap-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-accent-primary-light" />
-              <span className="text-xs uppercase tracking-wider font-semibold text-text-secondary">
-                SmartSave Portfolio
-              </span>
-            </div>
-            <Badge variant="ai" size="sm">
-              <Brain size={10} className="mr-0.5" />
-              AI Active
-            </Badge>
-          </div>
+        {/* Split bar: where the money sits */}
+        <div className="mt-4 flex h-1.5 w-full overflow-hidden rounded-full bg-bg-elevated" aria-hidden>
+          <span className="bg-text-primary/80" style={{ width: `${share(wallet.balance)}%` }} />
+          <span className="bg-success" style={{ width: `${share(normalSavings.balance)}%` }} />
+          <span className="bg-accent-secondary" style={{ width: `${share(strictSavings.balance)}%` }} />
+        </div>
 
-          <BalanceDisplay
-            amount={totalNetWorth}
-            label="Total Net Worth"
-            size="xl"
-            showChange
-            changePercentage={changePercentage}
+        <div className="mt-4 divide-y divide-border-subtle">
+          <AccountRow href="/wallet" name="Wallet" note="Everyday spending" amount={wallet.balance} dot="bg-text-primary/80" />
+          <AccountRow
+            href="/savings/normal"
+            name="Flexible savings"
+            note="Withdraw any time"
+            amount={normalSavings.balance}
+            dot="bg-success"
           />
-
-          <div className="grid grid-cols-3 gap-2 mt-2 pt-4 border-t border-border-subtle">
-            <Link href="/wallet" className="text-center group">
-              <p className="text-xs font-medium text-text-tertiary group-hover:text-text-secondary transition-colors">
-                Wallet
-              </p>
-              <p className="text-sm font-bold text-accent-primary-light number-font mt-0.5">
-                {formatCurrency(wallet.balance, { compact: true })}
-              </p>
-            </Link>
-            <Link href="/savings/normal" className="text-center group">
-              <p className="text-xs font-medium text-text-tertiary group-hover:text-text-secondary transition-colors">
-                Flexible
-              </p>
-              <p className="text-sm font-bold text-success number-font mt-0.5">
-                {formatCurrency(normalSavings.balance, { compact: true })}
-              </p>
-            </Link>
-            <Link href="/savings/strict" className="text-center group">
-              <p className="text-xs font-medium text-text-tertiary group-hover:text-text-secondary transition-colors">
-                Protected
-              </p>
-              <p className="text-sm font-bold text-accent-secondary number-font mt-0.5">
-                {formatCurrency(strictSavings.balance, { compact: true })}
-              </p>
-            </Link>
-          </div>
+          <AccountRow
+            href="/savings/strict"
+            name="Strict savings"
+            note="Needs a bill to withdraw"
+            amount={strictSavings.balance}
+            dot="bg-accent-secondary"
+          />
         </div>
-      </GlassCard>
+      </section>
 
-      {/* ── Quick Actions Grid ───────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/wallet" className="block">
-          <GlassCard
-            hover
-            padding="sm"
-            className="flex items-center gap-3 border border-border-subtle h-full"
-          >
-            <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary-light flex-shrink-0">
-              <ArrowUpRight size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-text-primary">Send Money</p>
-              <p className="text-2xs text-text-tertiary">Wallet transfer</p>
-            </div>
-          </GlassCard>
+      {/* ── Actions ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-2">
+        <Link
+          href="/wallet"
+          className="flex flex-col items-center gap-1.5 rounded-xl bg-bg-surface border border-border-subtle py-3 text-xs font-medium text-text-primary hover:bg-bg-elevated"
+        >
+          <ArrowUpRight size={18} /> Send
         </Link>
-
-        <Link href="/savings/strict/withdraw" className="block">
-          <GlassCard
-            hover
-            padding="sm"
-            className="flex items-center gap-3 border border-border-subtle h-full"
-          >
-            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center text-success flex-shrink-0">
-              <ArrowDownLeft size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-text-primary">Request</p>
-              <p className="text-2xs text-text-tertiary">Strict withdrawal</p>
-            </div>
-          </GlassCard>
+        <Link
+          href="/savings"
+          className="flex flex-col items-center gap-1.5 rounded-xl bg-bg-surface border border-border-subtle py-3 text-xs font-medium text-text-primary hover:bg-bg-elevated"
+        >
+          <Plus size={18} /> Save
+        </Link>
+        <Link
+          href="/savings/strict/withdraw"
+          className="flex flex-col items-center gap-1.5 rounded-xl bg-bg-surface border border-border-subtle py-3 text-xs font-medium text-text-primary hover:bg-bg-elevated"
+        >
+          <Lock size={18} /> Unlock
         </Link>
       </div>
 
-      {/* ── Savings Ratio & Analytics ────────────────────────────── */}
-      <motion.div variants={fadeInUpVariants} className="glass rounded-3xl p-5 border border-border-subtle">
-        <div className="flex items-center justify-between mb-4">
+      {/* ── Last 30 days ──────────────────────────────────────── */}
+      <section className="rounded-2xl bg-bg-surface border border-border-subtle p-5">
+        <h2 className="text-sm font-semibold text-text-primary">Last 30 days</h2>
+        <dl className="mt-3 grid grid-cols-3 gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-text-primary">Savings Allocation</h3>
-            <p className="text-xs text-text-tertiary">Flexible vs protected savings vaults</p>
+            <dt className="text-xs text-text-tertiary">Money in</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-success number-font">{formatCurrency(moneyIn, { compact: true })}</dd>
           </div>
-          <CircularProgress value={totalSavings > 0 ? Math.round(savingsProgress) : 100} size={56} strokeWidth={5}>
-            <span className="text-2xs font-bold text-accent-primary-light">
-              {totalSavings > 0 ? Math.round(savingsProgress) : 100}%
-            </span>
-          </CircularProgress>
-        </div>
-
-        <div className="space-y-2 mt-2 pt-2 border-t border-border-subtle">
-          <div className="flex justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-success" />
-              <span className="text-text-secondary">Flexible Savings</span>
-            </div>
-            <span className="font-semibold text-text-primary">
-              {totalSavings > 0 ? Math.round(savingsProgress) : 100}%
-            </span>
+          <div>
+            <dt className="text-xs text-text-tertiary">Money out</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-text-primary number-font">{formatCurrency(moneyOut, { compact: true })}</dd>
           </div>
-          <div className="flex justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-accent-primary" />
-              <span className="text-text-secondary">Protected Savings</span>
-            </div>
-            <span className="font-semibold text-text-primary">
-              {totalSavings > 0 ? 100 - Math.round(savingsProgress) : 0}%
-            </span>
+          <div>
+            <dt className="text-xs text-text-tertiary">Blocked</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-text-primary number-font">
+              {blocked.length} {blocked.length === 1 ? "try" : "tries"}
+            </dd>
           </div>
-        </div>
-      </motion.div>
-
-      {/* ── Featured AI Insight ──────────────────────────────────── */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-1.5 px-1">
-          <Brain size={13} className="text-accent-primary-light" />
-          <p className="text-xs font-semibold text-accent-primary-light uppercase tracking-wider">
-            AI Smart Recommendation
+        </dl>
+        {blocked.length > 0 && (
+          <p className="mt-3 text-xs text-text-secondary">
+            Strict savings stopped {formatCurrency(blocked.reduce((s, t) => s + Number(t.amount), 0))} of non-essential
+            spending.
           </p>
-        </div>
-        <AIInsightCard insight={mockInsights[0]} />
-      </div>
+        )}
+      </section>
 
-      {/* ── Transaction List ──────────────────────────────────────── */}
-      <div className="flex flex-col">
-        <TransactionList
-          transactions={transactions}
-          title="All Activity"
-          seeAllHref="/history"
-          limit={4}
-        />
-      </div>
-    </motion.div>
+      {/* ── Activity ──────────────────────────────────────────── */}
+      <TransactionList transactions={transactions} title="Recent activity" seeAllHref="/history" limit={5} />
+    </div>
   );
 }

@@ -27,7 +27,7 @@ const buttonVariants = cva(
         glass:
           "glass text-text-primary hover:bg-bg-elevated",
         gradient:
-          "bg-gradient-to-r from-violet-600 to-violet-500 text-white hover:from-violet-700 hover:to-violet-600 shadow-md hover:shadow-violet",
+          "bg-accent-primary text-text-inverse hover:bg-accent-primary-hover",
       },
       size: {
         xs: "h-7 px-3 text-xs rounded-full",

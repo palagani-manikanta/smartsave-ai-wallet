@@ -49,13 +49,6 @@ export class StrictSavingsService {
       throw new ValidationError("Insufficient funds in Strict Savings vault");
     }
 
-    const now = new Date();
-    const endDate = new Date(strict.endDate);
-    const isMatured = now >= endDate;
-
-    const threshold = Number(strict.withdrawalThreshold);
-    const remainingBalance = Number(strict.balance) - amount;
-
     // ALL withdrawals from Strict Savings require AI document verification — no auto-approval path
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiration
     const request = await prisma.verificationRequest.create({

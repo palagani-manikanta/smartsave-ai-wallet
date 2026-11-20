@@ -13,8 +13,8 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
+  const [theme, setThemeState] = useState<Theme>("light");
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("light");
 
   // Apply theme to DOM
   const applyTheme = (t: "dark" | "light") => {
@@ -27,7 +27,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Initialize from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("smartsave-theme") as Theme | null;
-    const initial = stored ?? "dark";
+    const initial = stored ?? "light";
     setThemeState(initial);
 
     if (initial === "system") {

@@ -89,13 +89,8 @@ export default function NormalSavingsPage() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <PiggyBank size={14} className="text-white/70" strokeWidth={1.5} />
-              <span className="text-xs text-white/70 font-medium">Flexible Vault</span>
-            </div>
-            <div className="flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-full">
-              <span className="text-xs text-emerald-300 font-semibold">
-                {formatPercentage(normalSavings.monthlyGrowth ?? 0)} APY
-              </span>
+              <PiggyBank size={14} className="text-text-secondary" strokeWidth={1.5} />
+              <span className="text-xs text-text-secondary font-medium">Flexible Vault</span>
             </div>
           </div>
 

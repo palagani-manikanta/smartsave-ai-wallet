@@ -108,10 +108,10 @@ export default function SavingsSummaryPage() {
         </div>
         <button
           onClick={() => setIsSmartSaveOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-accent-primary text-white text-xs font-bold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent-primary text-text-inverse text-xs font-semibold whitespace-nowrap hover:bg-accent-primary/90 transition-all active:scale-95"
         >
           <Zap size={13} />
-          Smart Save
+          Move money
         </button>
       </div>
 
@@ -121,7 +121,7 @@ export default function SavingsSummaryPage() {
           <GlassCard
             hover
             padding="lg"
-            className="border border-emerald-500/20 bg-gradient-to-br from-emerald-950/20 via-bg-surface to-bg-base"
+            className="border border-border-subtle bg-bg-surface"
           >
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
@@ -145,7 +145,6 @@ export default function SavingsSummaryPage() {
 
             <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-2xs text-text-tertiary">
               <span>Withdraw anytime without restrictions</span>
-              <span className="font-semibold text-success">Interest: {normalSavings.monthlyGrowth}% APY</span>
             </div>
           </GlassCard>
         </Link>
@@ -157,10 +156,9 @@ export default function SavingsSummaryPage() {
           <GlassCard
             hover
             padding="lg"
-            className="border border-violet-500/20 bg-gradient-to-br from-violet-950/20 via-bg-surface to-bg-base relative overflow-hidden"
+            className="border border-border-subtle bg-bg-surface relative overflow-hidden"
           >
             {/* Ambient Shimmer */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-violet-600/10 rounded-full blur-2xl" />
 
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
@@ -178,19 +176,14 @@ export default function SavingsSummaryPage() {
             <div className="mt-2 flex justify-between items-end">
               <div>
                 <p className="text-2xs text-text-tertiary uppercase tracking-wider font-semibold">Locked Balance</p>
-                <p className="text-2xl font-extrabold text-accent-primary-light number-font mt-0.5">
+                <p className="text-2xl font-extrabold text-text-primary number-font mt-0.5">
                   {formatCurrency(strictSavings.balance)}
                 </p>
-              </div>
-              <div className="bg-accent-primary/15 border border-accent-primary/30 rounded-full px-2.5 py-1 flex items-center gap-1">
-                <Brain size={10} className="text-accent-primary-light" />
-                <span className="text-3xs font-bold text-accent-primary-light uppercase">AI Verification</span>
               </div>
             </div>
 
             <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-2xs text-text-tertiary">
-              <span>All withdrawals require AI verification</span>
-              <span className="font-semibold text-accent-primary-light">AI Shield Active</span>
+              <span>Withdrawals need a bill or receipt</span>
             </div>
           </GlassCard>
         </Link>
@@ -206,7 +199,7 @@ export default function SavingsSummaryPage() {
         </GlassCard>
 
         <GlassCard padding="sm" className="border border-border-subtle text-center">
-          <p className="text-3xs text-text-tertiary uppercase tracking-wider font-semibold mb-1">Total Saved This Month</p>
+          <p className="text-3xs text-text-tertiary uppercase tracking-wider font-semibold mb-1">Total ever locked</p>
           <p className="text-lg font-bold text-success number-font">
             {formatCurrency(strictSavings.totalSaved)}
           </p>
@@ -244,7 +237,7 @@ export default function SavingsSummaryPage() {
                       <Shield size={14} className="text-accent-primary-light" />
                       <span className="text-xs font-semibold text-text-primary">Protected Savings</span>
                     </div>
-                    <span className="text-sm font-bold text-accent-primary-light number-font">
+                    <span className="text-sm font-bold text-text-primary number-font">
                       {formatCurrency(successResult.strictAmt)}
                     </span>
                   </div>

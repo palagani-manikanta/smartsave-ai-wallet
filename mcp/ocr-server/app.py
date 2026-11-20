@@ -137,95 +137,39 @@ def process_file_path(file_path: str, default_amount: Optional[float] = None, or
     pages_count = 1
     confidence = 0.95
 
-    try:
-        # CASE A: PDF Document processing
-        if ext == ".pdf":
-            reader = PdfReader(file_path)
-            pages_count = len(reader.pages)
-            extracted_pages = []
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    extracted_pages.append(text)
-            raw_text = "\n".join(extracted_pages)
-            
-            # If pdf contains no extractable text, fall back to mock simulation
-            if not raw_text.strip():
-                logger.warning("Scanned PDF detected with no digital text content. Running fallback OCR mock simulation.")
-                raw_text = f"SCANNED PDF INVOICE\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal: ${default_amount or 124.50}\nMerchant: Hospital Emergency Services\nReason: Emergency medical care validation"
+    # CASE A: PDF with a text layer
+    if ext == ".pdf":
+        reader = PdfReader(file_path)
+        pages_count = len(reader.pages)
+        raw_text = "\n".join(t for t in (page.extract_text() for page in reader.pages) if t)
+        if not raw_text.strip():
+            logger.warning("PDF has no text layer (scanned PDF); not supported yet.")
 
-        # CASE B: Image processing (PNG, JPEG)
-        elif ext in [".png", ".jpg", ".jpeg"]:
-            try:
-                # Open image to check dimensions and file size signature first
-                img = Image.open(file_path)
-                w, h = img.size
-                file_size = os.path.getsize(file_path)
-                logger.info(f"Checking image signature: {w}x{h}, size: {file_size} bytes")
+    # CASE B: Images go through OpenCV preprocessing + Tesseract
+    elif ext in [".png", ".jpg", ".jpeg"]:
+        try:
+            preprocessed = preprocess_image(file_path)
+            raw_text = pytesseract.image_to_string(Image.fromarray(preprocessed))
+            logger.info(f"Tesseract OCR extracted {len(raw_text)} chars from image.")
+        except Exception as ocr_err:
+            logger.error(f"OCR failed: {ocr_err}")
 
-                # Match St. Bonaventure's High School fee receipt
-                if (w == 816 and h == 1056) or (58000 <= file_size <= 61000):
-                    logger.info("Matched St. Bonaventure's High School fee receipt image signature!")
-                    raw_text = """St. Bonaventure's High School
-Europa School UK Thame Lane Culham OX14 3DZ
-Name of Student: Thomas DeBruyne
-Course: Daycare
-Courses Duration: June 2022 to March 2023
-Date of Payment: 10-June-2022
-Receipt No: 0146
-Particulars      Amount
-1 Tuition Fee     $55,000
-2 Admission Fee   $10,000
-3 Exam Fee        $20,000
-4 Sports Fee      $5,000
-5 Transport Fee   $2,000
-Total            $92,000
-Balance if any   $5,000"""
-                # Match Hospital Emergency Invoice
-                elif (w == 1075 and h == 1599) or (168000 <= file_size <= 171000):
-                    logger.info("Matched Hospital Emergency Invoice image signature!")
-                    raw_text = """HOSPITAL EMERGENCY INVOICE
-City Medical Center
-Emergency Room Visit
-Date: 12-July-2026
-Total Due: $750.00
-Treatment: Emergency medical care validation"""
-                else:
-                    # Run standard Tesseract OCR
-                    preprocessed = preprocess_image(file_path)
-                    pil_img = Image.fromarray(preprocessed)
-                    raw_text = pytesseract.image_to_string(pil_img)
-                    logger.info(f"Tesseract OCR extracted {len(raw_text)} chars from image.")
+    # CASE C: Plain-text receipts (used by the sample bills in demo/)
+    elif ext == ".txt":
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as fh:
+            raw_text = fh.read()
 
-                if not raw_text.strip():
-                    raise ValueError("Tesseract returned empty text.")
+    # No made-up text: if nothing could be read, say so and let the caller reject or retry.
+    if not raw_text.strip():
+        return {
+            "success": False,
+            "rawText": "",
+            "confidence": 0.0,
+            "pages": pages_count,
+            "fields": extract_fields("", default_amount),
+            "error": "No readable text found in the document.",
+        }
 
-            except Exception as ocr_err:
-                logger.warning(f"Image signature/OCR extraction failed: {ocr_err}. Running filename-aware fallback.")
-                # Smart fallback: detect receipt category from filename keywords
-                filename = (original_name or os.path.basename(file_path)).lower()
-                logger.info(f"Evaluating filename for keywords: {filename}")
-
-                if any(k in filename for k in ["medical", "health", "hospital", "doctor", "clinic", "pharmacy"]):
-                    raw_text = f"HOSPITAL MEDICAL INVOICE\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal: ${default_amount or 750.00}\nProvider: City Medical Center\nService: Emergency Medical Treatment"
-                elif any(k in filename for k in ["school", "tuition", "education", "college", "university", "fee", "fees", "academic", "daycare", "bonaventure"]):
-                    raw_text = f"SCHOOL FEE INVOICE\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal: ${default_amount or 500.00}\nInstitution: Educational Institution\nDescription: Tuition Fee\nAdmission Fee\nExam Fee"
-                elif any(k in filename for k in ["electric", "power", "utility", "water", "gas", "internet", "rent", "lease"]):
-                    raw_text = f"UTILITY BILL\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal Due: ${default_amount or 120.00}\nProvider: City Utilities\nService: Electricity / Water / Internet"
-                elif any(k in filename for k in ["insurance", "insure"]):
-                    raw_text = f"INSURANCE PAYMENT RECEIPT\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal: ${default_amount or 200.00}\nProvider: Insurance Services\nCoverage: Health Insurance Premium"
-                elif any(k in filename for k in ["repair", "maintenance", "plumb", "mechanic"]):
-                    raw_text = f"MAINTENANCE INVOICE\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal: ${default_amount or 300.00}\nProvider: Repair Services\nWork: Emergency Repair"
-                else:
-                    # Truly neutral fallback — no merchant name that would bias the classifier
-                    raw_text = f"DOCUMENT\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal Due: ${default_amount or 50.00}\nProvider: Service Provider\nDescription: Payment"
-
-    except Exception as e:
-        logger.error(f"Error during file processing: {e}")
-        # Neutral fallback — do NOT include shopping merchants like Walmart/Target
-        raw_text = f"INVOICE\nDate: {datetime.today().strftime('%Y-%m-%d')}\nTotal Due: ${default_amount or 50.00}\nProvider: Service Provider"
-
-    # Parse details
     fields = extract_fields(raw_text, default_amount)
 
     return {

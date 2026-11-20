@@ -16,8 +16,50 @@ import {
   mockNormalSavings,
   mockStrictSavings,
 } from "@/lib/mock-data";
+import { IS_DEMO } from "@/lib/demo";
+import { demoFetch, resetDemoData } from "@/lib/demo-api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+// Returns a fresh auth token for each request (Clerk tokens expire after ~60s).
+let tokenGetter: (() => Promise<string | null>) | null = null;
+export function setTokenGetter(getter: (() => Promise<string | null>) | null) {
+  tokenGetter = getter;
+}
+
+const serverFetch: typeof fetch = async (input, init) => {
+  const fresh = tokenGetter ? await tokenGetter().catch(() => null) : null;
+  if (fresh) {
+    const headers = new Headers(init?.headers);
+    headers.set("Authorization", `Bearer ${fresh}`);
+    init = { ...init, headers };
+  }
+  return fetch(input, init);
+};
+
+// In demo mode every API call is answered in the browser instead of by the server.
+const apiFetch: typeof fetch = IS_DEMO ? demoFetch : serverFetch;
+
+// Signed-in users start from empty accounts until the server answers,
+// instead of flashing made-up sample balances.
+const now = () => new Date().toISOString();
+const emptyUser = { id: "", firstName: "", lastName: "", email: "", joinedAt: now() };
+const emptyWallet = { id: "", userId: "", balance: 0, currency: "USD", updatedAt: now() };
+const emptySavings = { id: "", userId: "", balance: 0, currency: "USD", updatedAt: now() };
+const emptyStrict = {
+  id: "",
+  userId: "",
+  balance: 0,
+  currency: "USD",
+  withdrawalThreshold: 0,
+  totalSaved: 0,
+  startDate: now(),
+  endDate: now(),
+  updatedAt: now(),
+};
+const initialUser = IS_DEMO ? mockUser : emptyUser;
+const initialWallet = IS_DEMO ? mockWallet : emptyWallet;
+const initialSavings = IS_DEMO ? mockNormalSavings : emptySavings;
+const initialStrict = IS_DEMO ? mockStrictSavings : emptyStrict;
 
 interface SmartSaveState {
   // Domain States
@@ -79,10 +121,10 @@ export const useSmartSaveStore = create<SmartSaveState>()(
   persist(
     (set, get) => ({
       // ── Initial State ───────────────────────────────────────────
-      user: mockUser,
-      wallet: mockWallet,
-      normalSavings: mockNormalSavings,
-      strictSavings: mockStrictSavings,
+      user: initialUser,
+      wallet: initialWallet,
+      normalSavings: initialSavings,
+      strictSavings: initialStrict,
       transactions: [],
       notifications: [],
       verificationRequests: [],
@@ -104,7 +146,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return;
         try {
-          const res = await fetch(`${API_BASE}/users/sync`, {
+          const res = await apiFetch(`${API_BASE}/users/sync`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -136,7 +178,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         if (!token) return;
         try {
           // 1. Fetch user profile containing all accounts & settings
-          const profileRes = await fetch(`${API_BASE}/users/profile`, {
+          const profileRes = await apiFetch(`${API_BASE}/users/profile`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -183,7 +225,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
           }
 
           // 2. Fetch transactions
-          const txnRes = await fetch(`${API_BASE}/transactions`, {
+          const txnRes = await apiFetch(`${API_BASE}/transactions`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -198,7 +240,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
           }
 
           // 3. Fetch notifications
-          const notifRes = await fetch(`${API_BASE}/notifications`, {
+          const notifRes = await apiFetch(`${API_BASE}/notifications`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -217,7 +259,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return false;
         try {
-          const res = await fetch(`${API_BASE}/wallet/deposit`, {
+          const res = await apiFetch(`${API_BASE}/wallet/deposit`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -241,7 +283,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return false;
         try {
-          const res = await fetch(`${API_BASE}/wallet/withdraw`, {
+          const res = await apiFetch(`${API_BASE}/wallet/withdraw`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -266,7 +308,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return false;
         try {
-          const res = await fetch(`${API_BASE}/savings/deposit`, {
+          const res = await apiFetch(`${API_BASE}/savings/deposit`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -290,7 +332,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return false;
         try {
-          const res = await fetch(`${API_BASE}/savings/withdraw`, {
+          const res = await apiFetch(`${API_BASE}/savings/withdraw`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -315,7 +357,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return false;
         try {
-          const res = await fetch(`${API_BASE}/strict-savings/deposit`, {
+          const res = await apiFetch(`${API_BASE}/strict-savings/deposit`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -339,7 +381,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return { status: "PENDING_VERIFICATION", amount };
         try {
-          const res = await fetch(`${API_BASE}/strict-savings/withdraw`, {
+          const res = await apiFetch(`${API_BASE}/strict-savings/withdraw`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -392,7 +434,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         formData.append("requestId", currentVerificationRequest.id);
 
         try {
-          const res = await fetch(`${API_BASE}/strict-savings/upload`, {
+          const res = await apiFetch(`${API_BASE}/strict-savings/upload`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -402,38 +444,12 @@ export const useSmartSaveStore = create<SmartSaveState>()(
 
           if (res.ok) {
             const json = await res.json();
-            const { ai, ocr } = json.data;
-
-            const status = ai.approved ? "APPROVED" : "REJECTED";
-            const reasoning = ai.reason;
-
-            // Instantly finalize decision in database
-            const decideRes = await fetch(`${API_BASE}/strict-savings/decide`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                requestId: currentVerificationRequest.id,
-                status,
-                reasoning,
-              }),
-            });
-
-            if (decideRes.ok) {
-              set({ currentVerificationRequest: null });
-              await get().fetchData();
-              return {
-                status,
-                reasoning,
-                ocr,
-                ai,
-              };
-            } else {
-              const decideErr = await decideRes.text().catch(() => "");
-              console.error("Strict savings decision finalization failed:", decideRes.status, decideErr);
-            }
+            const { ai, ocr, decision } = json.data;
+            // The server checks the document and decides; the app only shows the result.
+            const status: "APPROVED" | "REJECTED" = decision === "APPROVED" ? "APPROVED" : "REJECTED";
+            set({ currentVerificationRequest: null });
+            await get().fetchData();
+            return { status, reasoning: ai?.reason, ocr, ai };
           } else {
             const err = await res.json().catch(() => ({}));
             console.error("Upload proof failed:", res.status, err);
@@ -448,7 +464,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return;
         try {
-          const res = await fetch(`${API_BASE}/strict-savings/decide`, {
+          const res = await apiFetch(`${API_BASE}/strict-savings/decide`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -469,7 +485,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return false;
         try {
-          const res = await fetch(`${API_BASE}/strict-savings/threshold`, {
+          const res = await apiFetch(`${API_BASE}/strict-savings/threshold`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -492,7 +508,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return;
         try {
-          const res = await fetch(`${API_BASE}/notifications/read-all`, {
+          const res = await apiFetch(`${API_BASE}/notifications/read-all`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -510,7 +526,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return;
         try {
-          const res = await fetch(`${API_BASE}/notifications/clear-all`, {
+          const res = await apiFetch(`${API_BASE}/notifications/clear-all`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -528,7 +544,7 @@ export const useSmartSaveStore = create<SmartSaveState>()(
         const { token } = get();
         if (!token) return false;
         try {
-          const res = await fetch(`${API_BASE}/users/settings`, {
+          const res = await apiFetch(`${API_BASE}/users/settings`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -552,11 +568,12 @@ export const useSmartSaveStore = create<SmartSaveState>()(
 
       resetAllData: async () => {
         // Dev helper to clear client state
+        if (IS_DEMO) resetDemoData();
         set({
-          user: mockUser,
-          wallet: mockWallet,
-          normalSavings: mockNormalSavings,
-          strictSavings: mockStrictSavings,
+          user: initialUser,
+          wallet: initialWallet,
+          normalSavings: initialSavings,
+          strictSavings: initialStrict,
           transactions: [],
           notifications: [],
           verificationRequests: [],
@@ -567,6 +584,8 @@ export const useSmartSaveStore = create<SmartSaveState>()(
     }),
     {
       name: "smartsave-wallet-storage",
+      // Never keep auth tokens in localStorage.
+      partialize: ({ token: _token, ...rest }) => rest,
     }
   )
 );

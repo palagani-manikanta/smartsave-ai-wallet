@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "demo": "node scripts/run-demo.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.20",

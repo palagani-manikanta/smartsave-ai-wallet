@@ -48,7 +48,7 @@ export function GlassCard({
       whileTap={hover ? { scale: 0.98, y: 0 } : undefined}
       onClick={onClick}
       className={cn(
-        "glass rounded-3xl",
+        "glass rounded-2xl",
         paddingMap[padding],
         glowClass,
         hover && "cursor-pointer",
@@ -87,7 +87,7 @@ export function WalletCard({
       initial="initial"
       animate="animate"
       className={cn(
-        "relative overflow-hidden rounded-3xl p-6",
+        "relative overflow-hidden rounded-2xl p-6",
         "gradient-wallet",
         "border border-violet-800/30",
         "glow-violet",
@@ -95,9 +95,6 @@ export function WalletCard({
       )}
     >
       {/* Decorative circles */}
-      <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-violet-500/10" />
-      <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-indigo-500/10" />
-      <div className="absolute top-1/2 right-8 w-20 h-20 rounded-full bg-violet-400/5" />
 
       <div className="relative z-10">
         {children}
@@ -129,7 +126,7 @@ export function SavingsCard({
       initial="initial"
       animate="animate"
       className={cn(
-        "relative overflow-hidden rounded-3xl p-6",
+        "relative overflow-hidden rounded-2xl p-6",
         "gradient-savings",
         "border border-emerald-800/30",
         "glow-emerald",
@@ -137,8 +134,6 @@ export function SavingsCard({
       )}
     >
       {/* Decorative elements */}
-      <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-emerald-400/10" />
-      <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-teal-400/10" />
 
       <div className="relative z-10">
         {children}
@@ -170,26 +165,12 @@ export function StrictSavingsCard({
       initial="initial"
       animate="animate"
       className={cn(
-        "relative overflow-hidden rounded-3xl p-6 strict-shimmer",
+        "relative overflow-hidden rounded-2xl p-6",
         "gradient-strict",
-        "border border-violet-900/40",
+        
         className
       )}
-      style={{
-        boxShadow:
-          "0 20px 40px rgba(0,0,0,0.5), 0 0 60px rgba(139,92,246,0.12)",
-      }}
     >
-      {/* Animated gradient orb */}
-      <motion.div
-        className="absolute -top-16 -right-16 w-48 h-48 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)",
-        }}
-        animate={{ scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      />
 
       <div className="relative z-10">
         {children}

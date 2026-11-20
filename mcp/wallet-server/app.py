@@ -23,7 +23,7 @@ logger = logging.getLogger("smartsave-wallet-server")
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     logger.error("🛑 DATABASE_URL is not defined in environment variables!")
-    DATABASE_URL = "postgresql://postgres:8760@localhost:5432/smartsave"
+    DATABASE_URL = "postgresql://postgres:postgrespassword@localhost:5432/smartsave"
 
 # Strip Prisma-specific query params that psycopg2 doesn't understand
 if "?" in DATABASE_URL:
@@ -37,6 +37,7 @@ class TransferRequest(BaseModel):
     fromWallet: str = Field(..., alias="from", description="Source wallet type: MAIN_WALLET, NORMAL_SAVINGS, STRICT_SAVINGS, EXTERNAL")
     toWallet: str = Field(..., alias="to", description="Destination wallet type: MAIN_WALLET, NORMAL_SAVINGS, STRICT_SAVINGS, EXTERNAL")
     transactionType: str = Field("TRANSFER", description="TRANSFER, WITHDRAWAL, DEPOSIT")
+    note: Optional[str] = Field(None, alias="description", description="Optional text shown in the transaction list")
 
     class Config:
         populate_by_name = True
@@ -108,7 +109,7 @@ def execute_db_transfer(req: TransferRequest) -> Dict[str, Any]:
                     "CREDIT",
                     req.amount,
                     "USD",
-                    "External deposit",
+                    req.note or "External deposit",
                     "COMPLETED",
                     to_label,
                     datetime.utcnow(),
@@ -167,7 +168,7 @@ def execute_db_transfer(req: TransferRequest) -> Dict[str, Any]:
                     "DEBIT",
                     req.amount,
                     "USD",
-                    "External payment",
+                    req.note or "External payment",
                     "COMPLETED",
                     from_label,
                     datetime.utcnow(),

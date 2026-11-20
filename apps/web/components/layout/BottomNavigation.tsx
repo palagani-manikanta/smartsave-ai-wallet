@@ -30,14 +30,13 @@ const navItems = [
     label: "Savings",
     href: "/savings",
     icon: PiggyBank,
-    match: /^\/savings/,
+    match: /^\/savings(?!\/strict)/,
   },
   {
     label: "Strict",
-    href: "/strict-savings",
+    href: "/savings/strict",
     icon: Shield,
-    match: /^\/strict-savings/,
-    badge: "AI",
+    match: /^\/(savings\/strict|strict-savings)/,
   },
   {
     label: "Settings",
@@ -52,13 +51,10 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-app z-nav">
-      {/* Gradient fade above nav */}
-      <div className="h-6 bg-gradient-to-t from-bg-base to-transparent pointer-events-none" />
-
       <div
         className={cn(
           "px-2 pb-safe-bottom",
-          "bg-bg-surface/90 backdrop-blur-xl",
+          "bg-bg-surface",
           "border-t border-border-subtle",
           "h-bottom-nav"
         )}
@@ -92,12 +88,6 @@ export function BottomNavigation() {
                     animate={{ y: isActive ? -1 : 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   >
-                    {/* AI badge */}
-                    {item.badge && (
-                      <span className="absolute -top-1 -right-3 text-2xs font-bold leading-none px-1 py-0.5 rounded-full bg-accent-primary text-white">
-                        {item.badge}
-                      </span>
-                    )}
                     <Icon
                       size={22}
                       strokeWidth={isActive ? 2.5 : 1.8}

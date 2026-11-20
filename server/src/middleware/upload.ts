@@ -30,11 +30,11 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+  const allowedTypes = ["image/jpeg", "image/png", "application/pdf", "text/plain"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new ValidationError("Only JPEG, PNG, and PDF files are allowed"));
+    cb(new ValidationError("Only JPEG, PNG, PDF and TXT files are allowed"));
   }
 };
 
