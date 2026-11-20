@@ -113,7 +113,7 @@ app.get("/health", async (_req: Request, res: Response) => {
     // Wallet server is likely down or in sandbox mode
   }
 
-  const overallStatus = (dbStatus === "UP" && walletStatus === "UP") ? "UP" : "DEGRADED";
+  const overallStatus = [dbStatus, ocrStatus, aiStatus, walletStatus].every((s) => s === "UP") ? "UP" : "DEGRADED";
 
   res.status(200).json({
     status: overallStatus,

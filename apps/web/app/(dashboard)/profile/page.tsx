@@ -58,15 +58,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant="ai" size="md">
-              <Sparkles size={10} className="mr-0.5" />
-              SmartSave Premium
-            </Badge>
-            <Badge variant="success" size="md">
-              Level 3 Saver
-            </Badge>
-          </div>
         </div>
 
         {/* Joined date info */}
@@ -85,16 +76,16 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-3">
           <GlassCard padding="sm" className="border border-border-subtle">
             <p className="text-2xs text-text-tertiary font-medium uppercase tracking-wider mb-1">
-              Total Managed Assets
+              Total balance
             </p>
-            <p className="text-xl font-bold text-accent-primary-light number-font">
+            <p className="text-xl font-bold text-text-primary number-font">
               {formatCurrency(totalAssets)}
             </p>
           </GlassCard>
 
           <GlassCard padding="sm" className="border border-border-subtle">
             <p className="text-2xs text-text-tertiary font-medium uppercase tracking-wider mb-1">
-              Protected Ratio
+              Share in strict savings
             </p>
             <p className="text-xl font-bold text-success number-font">
               {protectedRatio}%
@@ -103,34 +94,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── Saver Badges / Achievements ───────────────────────────── */}
-      <div className="flex flex-col gap-3">
-        <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider px-1">
-          Achievements
-        </h3>
-
-        <GlassCard padding="sm" className="flex items-center gap-3 border border-border-subtle bg-bg-surface/50">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-accent-primary-light">
-            <Award size={20} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-primary">Impulse Shield Master</p>
-            <p className="text-xs text-text-tertiary">Blocked 5+ non-essential withdrawals</p>
-          </div>
-          <Badge variant="success">Active</Badge>
-        </GlassCard>
-
-        <GlassCard padding="sm" className="flex items-center gap-3 border border-border-subtle bg-bg-surface/50">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-success">
-            <TrendingUp size={20} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-primary">Steady Accumulator</p>
-            <p className="text-xs text-text-tertiary">Kept savings growing for 3 consecutive months</p>
-          </div>
-          <Badge variant="success">Active</Badge>
-        </GlassCard>
-      </div>
     </motion.div>
   );
 }

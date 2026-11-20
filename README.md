@@ -34,16 +34,20 @@ To host the demo (for example on Vercel), deploy `apps/web` with the environment
 
 | Part | Full setup | Demo mode |
 |---|---|---|
-| Login | Clerk | None (one sample account) |
+| Login | Clerk (email, Google) | None (one sample account) |
 | Balances and transfers | Express API + Wallet service + PostgreSQL | Same rules, stored in the browser |
-| Reading the bill | Tesseract OCR | Reads `.txt` bills; for images it only uses the file name |
-| Essential or not | Google Gemini, with a keyword fallback | The same keyword rules, ported to TypeScript |
+| Reading the bill | Tesseract OCR for images, text layer for PDFs, `.txt` read directly | Reads `.txt` bills; for images it only uses the file name |
+| Essential or not | Google Gemini, or keyword rules if no `GEMINI_API_KEY` | The same keyword rules, ported to TypeScript |
+| Who decides | The server, right after the check. The app cannot approve its own withdrawal. | Same |
+
+If the bill can't be read, the withdrawal is blocked. If the OCR or AI service is down, nothing is decided and no money moves.
 
 ## Known limitations
 
-- No automated tests for the web app or the Express API yet. The Python services have a few unit tests.
-- If Tesseract fails on an image, the OCR service guesses a document type from the file name instead of reporting an error.
-- Balances are in USD and the sample data is made up.
+- No automated tests for the web app or the Express API yet. The Python services have a few unit tests (`pytest` in each `mcp/*` folder).
+- Scanned PDFs without a text layer are not read yet.
+- The keyword rules are simple: a bill is matched by words like "hospital" or "steam", not by understanding it. Gemini does better when a key is set.
+- Balances are in USD and all money is test money.
 
 ## Architecture
 
@@ -102,6 +106,16 @@ cp .env.example .env   # used by docker-compose
 You need a free Clerk test account (publishable + secret key) and a Google Gemini API key. Never commit real keys.
 
 
+### First run
+
+```bash
+npm install --prefix server && npm install --prefix apps/web
+cd server && npx prisma db push && cd ..                          # create the tables
+pip install -r mcp/ocr-server/requirements.txt -r mcp/ai-server/requirements.txt -r mcp/wallet-server/requirements.txt
+```
+
+Tesseract must be installed on your machine for image bills.
+
 ### Run locally
 
 ### Start all microservices in separate terminal splits (One Command)
@@ -127,6 +141,10 @@ To compile and launch the entire production stack inside a unified Docker contai
 # Build and boot all 6 service containers
 docker-compose up --build
 ```
+
+### Check that everything is running
+
+`http://localhost:5000/health` lists the database and the three Python services. All four should say `UP`.
 
 ### API docs
 

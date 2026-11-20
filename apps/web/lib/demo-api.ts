@@ -139,6 +139,38 @@ function move(db: DemoDb, from: Pocket | null, to: Pocket | null, amount: number
   return null;
 }
 
+function decide(db: DemoDb, requestId: string, approved: boolean): string | null {
+  const request = db.requests.find((r) => r.id === requestId);
+  if (!request) return "Verification request not found.";
+  if (request.status !== "PENDING_VERIFICATION") return "This request was already decided.";
+  request.status = approved ? "APPROVED" : "REJECTED";
+  if (approved) {
+    const err = move(db, "strict", "wallet", request.amount);
+    if (err) return err;
+    addTxn(db, {
+      type: "WITHDRAWAL",
+      direction: "CREDIT",
+      amount: request.amount,
+      walletType: "STRICT",
+      classification: "ESSENTIAL",
+      description: "Strict savings withdrawal (approved)",
+    });
+    notify(db, "SUCCESS", "Withdrawal approved", `$${request.amount.toFixed(2)} moved to your wallet.`);
+  } else {
+    addTxn(db, {
+      type: "WITHDRAWAL",
+      direction: "DEBIT",
+      amount: request.amount,
+      walletType: "STRICT",
+      classification: "NON_ESSENTIAL",
+      status: "FAILED",
+      description: "Strict savings withdrawal blocked",
+    });
+    notify(db, "ERROR", "Withdrawal blocked", `$${request.amount.toFixed(2)} stays locked: the bill looked non-essential.`);
+  }
+  return null;
+}
+
 async function readBody(init?: RequestInit): Promise<any> {
   if (!init?.body) return {};
   if (typeof init.body === "string") return JSON.parse(init.body);
@@ -273,42 +305,22 @@ export async function demoFetch(input: RequestInfo | URL, init?: RequestInit): P
       const text = isText ? await file.text() : file.name.replace(/[_\-.]+/g, " ");
       const fields = extractReceiptFields(text);
       const ai = classifyExpense(text);
+      const requestId = String(form.get("requestId") || "");
+      const err = decide(db, requestId, ai.approved);
+      if (err) return fail(err);
       return done({
         ocr: { rawText: text, fields, engine: isText ? "text-file (demo)" : "file-name only (demo)" },
         ai,
+        decision: ai.approved ? "APPROVED" : "REJECTED",
       });
     }
 
     case "POST /strict-savings/decide": {
-      const request = db.requests.find((r) => r.id === body.requestId);
-      if (!request) return fail("Verification request not found.");
-      if (request.status !== "PENDING_VERIFICATION") return fail("This request was already decided.");
-      request.status = body.status;
-      if (body.status === "APPROVED") {
-        const err = move(db, "strict", "wallet", request.amount);
-        if (err) return fail(err);
-        addTxn(db, {
-          type: "WITHDRAWAL",
-          direction: "CREDIT",
-          amount: request.amount,
-          walletType: "STRICT",
-          classification: "ESSENTIAL",
-          description: "Strict savings withdrawal (approved)",
-        });
-        notify(db, "SUCCESS", "Withdrawal approved", `$${request.amount.toFixed(2)} moved to your wallet.`);
-      } else {
-        addTxn(db, {
-          type: "WITHDRAWAL",
-          direction: "DEBIT",
-          amount: request.amount,
-          walletType: "STRICT",
-          classification: "NON_ESSENTIAL",
-          status: "FAILED",
-          description: "Strict savings withdrawal blocked",
-        });
-        notify(db, "ERROR", "Withdrawal blocked", `$${request.amount.toFixed(2)} stays locked: the bill looked non-essential.`);
-      }
-      return done({ request });
+      // Like the real API: the app may only cancel. Approval comes from the document check.
+      if (body.status !== "REJECTED") return fail("Only cancelling is allowed here.");
+      const err = decide(db, body.requestId, false);
+      if (err) return fail(err);
+      return done({});
     }
 
     case "POST /strict-savings/threshold": {

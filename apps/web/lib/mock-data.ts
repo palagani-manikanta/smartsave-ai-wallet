@@ -220,7 +220,7 @@ export const mockInsights: AIInsight[] = [
   {
     id: "ins_002",
     type: "STRICT_SAVINGS_MILESTONE",
-    title: "Strict Savings up 18% 🎉",
+    title: "Strict Savings up 18%",
     description: "Your protected savings grew by $3,800 this quarter. Keep it up — you're on track to reach your $30K goal.",
     impact: "+18%",
     impactType: "positive",
@@ -258,15 +258,15 @@ export const mockNotifications: Notification[] = [
   {
     id: "notif_001",
     type: "SUCCESS",
-    title: "Transfer Approved ✅",
-    message: "Your $200 withdrawal was approved after AI verified your medical bill.",
+    title: "Withdrawal approved",
+    message: "Your $200 withdrawal was approved after your medical bill was checked.",
     read: false,
     createdAt: daysAgo(3),
   },
   {
     id: "notif_002",
     type: "WARNING",
-    title: "Withdrawal Rejected",
+    title: "Withdrawal blocked",
     message: "Your $150 withdrawal was blocked — the document was classified as non-essential (entertainment).",
     read: false,
     createdAt: daysAgo(6),
@@ -274,7 +274,7 @@ export const mockNotifications: Notification[] = [
   {
     id: "notif_003",
     type: "INFO",
-    title: "Salary Received 💰",
+    title: "Salary received",
     message: "Acme Corp deposited $3,500 to your Main Wallet.",
     read: true,
     createdAt: daysAgo(0),

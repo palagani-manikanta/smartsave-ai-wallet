@@ -27,6 +27,7 @@ export class WalletService {
           from: "EXTERNAL",
           to: "MAIN_WALLET",
           transactionType: "DEPOSIT",
+          description,
         }),
       });
 
@@ -57,6 +58,7 @@ export class WalletService {
           from: "MAIN_WALLET",
           to: "EXTERNAL",
           transactionType: "WITHDRAWAL",
+          description,
         }),
       });
 

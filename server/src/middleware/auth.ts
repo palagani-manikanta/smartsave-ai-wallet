@@ -21,8 +21,10 @@ export const authMiddleware = async (
 
     const token = authHeader.split(" ")[1];
 
-    // Demo / testing bypass for local development APIs calls
-    if (process.env.NODE_ENV !== "production" && (token.startsWith("usr_") || token.startsWith("mock_"))) {
+    // Local testing bypass: "mock_<userId>" acts as that user. It is OFF unless
+    // ALLOW_DEV_AUTH=true is set explicitly, and never works in production.
+    const devAuthAllowed = process.env.ALLOW_DEV_AUTH === "true" && process.env.NODE_ENV !== "production";
+    if (devAuthAllowed && (token.startsWith("usr_") || token.startsWith("mock_"))) {
       // Strip "mock_" prefix to get the real Clerk userId (e.g. mock_user_abc -> user_abc)
       req.userId = token.startsWith("mock_") ? token.slice(5) : token;
       return next();

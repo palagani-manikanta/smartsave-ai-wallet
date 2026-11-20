@@ -1,7 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "@/middleware/auth";
 import { StrictSavingsService } from "@/services/strictSavings.service";
-import { ValidationError } from "@/utils/errors";
+import { ValidationError, ServiceUnavailableError } from "@/utils/errors";
 import { logger } from "@/config/logger";
 
 export class StrictSavingsController {
@@ -66,135 +66,76 @@ export class StrictSavingsController {
         path: file.path,
       });
 
-      // Query the local Python OCR FastAPI server on port 5001
-      let ocrResponse: any = {
-        success: false,
-        rawText: "",
-        confidence: 0.00,
-        pages: 1,
-        fields: {
-          merchant: "Unknown Merchant",
-          date: new Date().toISOString().split("T")[0],
-          amount: request.amount.toString(),
-        },
-      };
-
+      // 1. OCR service reads the document.
+      let ocrResponse: any;
       try {
         const formData = new URLSearchParams();
         formData.append("file_path", file.path);
         formData.append("default_amount", request.amount.toString());
         formData.append("original_name", file.originalname);
-
         const ocrRes = await fetch("http://localhost:5001/ocr", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: formData.toString(),
         });
-
-        if (ocrRes.ok) {
-          ocrResponse = await ocrRes.json();
-          logger.info(`OCR completed. Merchant: ${ocrResponse.fields?.merchant}, Amount: ${ocrResponse.fields?.amount}`);
-        } else {
-          logger.warn(`OCR Server returned error code: ${ocrRes.status}`);
-        }
+        if (!ocrRes.ok) throw new Error(`OCR service returned ${ocrRes.status}`);
+        ocrResponse = await ocrRes.json();
       } catch (ocrErr) {
-        logger.error(ocrErr, "Failed to connect to local OCR MCP server. Using neutral fallback.");
-        // Use a neutral fallback that does NOT bias the AI towards non-essential results
-        ocrResponse = {
-          success: true,
-          rawText: `INVOICE\nDate: ${new Date().toISOString().split("T")[0]}\nTotal Due: $${request.amount}\nProvider: General Services`,
-          confidence: 0.70,
-          pages: 1,
-          fields: {
-            merchant: "General Services",
-            date: new Date().toISOString().split("T")[0],
-            amount: request.amount.toString(),
-          },
-        };
+        logger.error(ocrErr, "OCR service unavailable");
+        throw new ServiceUnavailableError("Could not read the document right now. Your money was not moved. Please try again.");
       }
 
-      // Query the local Python AI Verification FastAPI server on port 5002
-      let aiResponse: any = {
-        approved: false,
-        essential: false,
-        category: "Unknown",
-        confidence: 0.0,
-        reason: "AI verification server is unconfigured.",
-        model: "offline-fallback",
-      };
-
-      if (ocrResponse && ocrResponse.success) {
+      // 2. If no text could be read, the withdrawal is not approved.
+      let aiResponse: any;
+      if (!ocrResponse.success) {
+        aiResponse = {
+          approved: false,
+          essential: false,
+          category: "Unreadable",
+          confidence: 0,
+          reason: "No readable text was found in the document, so the expense could not be verified.",
+          model: "none",
+        };
+      } else {
+        // 3. AI service classifies the expense (Gemini, or its own keyword rules if no API key).
         try {
-          // Flatten OCR response to ensure AI server receives all fields at top level
-          // The AI server's OCRPayload expects: rawText, merchant, date, amount (all top-level)
-          const aiPayload = {
-            rawText: ocrResponse.rawText || "",
-            merchant: ocrResponse.fields?.merchant || ocrResponse.merchant || "Unknown Merchant",
-            date: ocrResponse.fields?.date || ocrResponse.date || new Date().toISOString().split("T")[0],
-            amount: ocrResponse.fields?.amount || ocrResponse.amount || request.amount.toString(),
-            confidence: ocrResponse.confidence || 0.90,
-            pages: ocrResponse.pages || 1,
-            fields: ocrResponse.fields,
-          };
-
-          logger.info(`Sending to AI server — merchant: ${aiPayload.merchant}, amount: ${aiPayload.amount}, rawText length: ${aiPayload.rawText.length}`);
-
           const aiRes = await fetch("http://localhost:5002/verify", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(aiPayload),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rawText: ocrResponse.rawText || "",
+              merchant: ocrResponse.fields?.merchant || "Unknown Merchant",
+              date: ocrResponse.fields?.date || new Date().toISOString().split("T")[0],
+              amount: ocrResponse.fields?.amount || request.amount.toString(),
+              confidence: ocrResponse.confidence || 0.9,
+              pages: ocrResponse.pages || 1,
+              fields: ocrResponse.fields,
+            }),
           });
-
-          if (aiRes.ok) {
-            aiResponse = await aiRes.json();
-            logger.info(`AI verification complete — approved: ${aiResponse.approved}, category: ${aiResponse.category}, model: ${aiResponse.model}`);
-          } else {
-            const errBody = await aiRes.text();
-            logger.warn(`AI Server returned error ${aiRes.status}: ${errBody}`);
-          }
+          if (!aiRes.ok) throw new Error(`AI service returned ${aiRes.status}`);
+          aiResponse = await aiRes.json();
+          logger.info(`AI verification — approved: ${aiResponse.approved}, category: ${aiResponse.category}, model: ${aiResponse.model}`);
         } catch (aiErr) {
-          logger.error(aiErr, "Failed to connect to local AI MCP server. Using heuristic fallback.");
-          // Comprehensive heuristic fallback — checks both merchant AND rawText
-          const textToCheck = (
-            (ocrResponse.rawText || "") + " " +
-            (ocrResponse.fields?.merchant || "")
-          ).toLowerCase();
-
-          const essentialKeywords = [
-            "hospital", "medical", "doctor", "clinic", "pharmacy", "health",
-            "electric", "electricity", "power bill", "water bill", "gas bill",
-            "internet", "rent", "lease", "insurance", "invoice", "utility",
-            "transport", "bus", "train", "repair", "maintenance", "emergency",
-            "school", "tuition", "university", "government", "tax",
-          ];
-
-          const matchedKeyword = essentialKeywords.find(kw => textToCheck.includes(kw));
-          const isEssential = !!matchedKeyword;
-
-          aiResponse = {
-            approved: isEssential,
-            essential: isEssential,
-            category: isEssential ? "Essential Expense" : "Non-Essential",
-            confidence: 0.85,
-            reason: isEssential
-              ? `Heuristic matched essential keyword "${matchedKeyword}" in document. Classified as essential expense.`
-              : `No essential expense keywords found in document text. Merchant: ${ocrResponse.fields?.merchant || "Unknown"}. Classified as non-essential.`,
-            model: "express-heuristic-fallback",
-          };
+          logger.error(aiErr, "AI service unavailable");
+          throw new ServiceUnavailableError("Could not check the document right now. Your money was not moved. Please try again.");
         }
       }
+
+      // 4. The server makes the decision. The client never chooses the outcome.
+      const decided = await StrictSavingsService.decideRequest(
+        requestId,
+        userId,
+        aiResponse.approved ? "APPROVED" : "REJECTED",
+        aiResponse.reason
+      );
 
       res.status(200).json({
         status: "success",
         data: {
-          request,
+          request: { ...decided, documentUrl: undefined },
           ocr: ocrResponse,
           ai: aiResponse,
-          message: "Document uploaded and processed by OCR + AI successfully.",
+          decision: decided.status,
         },
       });
     } catch (error) {
@@ -211,8 +152,10 @@ export class StrictSavingsController {
         throw new ValidationError("requestId and status are required");
       }
 
-      if (status !== "APPROVED" && status !== "REJECTED") {
-        throw new ValidationError("Invalid status value");
+      // Approval only ever comes from the document check in uploadProof.
+      // The client may only cancel (reject) its own pending request.
+      if (status !== "REJECTED") {
+        throw new ValidationError("Only REJECTED (cancel) is allowed here; approval comes from the document check.");
       }
 
       const request = await StrictSavingsService.decideRequest(requestId, userId, status, reasoning);

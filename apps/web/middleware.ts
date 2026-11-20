@@ -12,13 +12,6 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 const authMiddleware = clerkMiddleware(async (auth, request) => {
-  // Developer bypass: only honoured in local development, never in production builds
-  if (
-    process.env.NODE_ENV === "development" &&
-    request.cookies.get("dev_bypass")?.value === "true"
-  ) {
-    return;
-  }
 
   if (!isPublicRoute(request)) {
     await auth.protect();

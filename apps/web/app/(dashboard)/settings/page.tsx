@@ -106,9 +106,6 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     try {
-      // Clear dev bypass cookie
-      document.cookie = "dev_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      
       // Reset Zustand store state
       await resetAllData();
       
